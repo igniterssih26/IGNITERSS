@@ -1,53 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  }
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #FAFAFA;
+  color: #09090B;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-.font-hud {
-  font-family: 'JetBrains Mono', 'Chakra Petch', monospace;
-}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #F4F4F5; }
+::-webkit-scrollbar-thumb { background: #D4D4D8; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #A1A1AA; }
 
-.rail-glow-green {
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
-}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 
-.rail-glow-amber {
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
-}
+.animate-spin { animation: spin 1s linear infinite; }
+.animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
+.animate-fade-in { animation: fadeIn 0.2s ease-out; }
 
-.rail-glow-red {
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
-}
-
-.rail-glow-blue {
-  box-shadow: 0 0 15px rgba(2, 132, 199, 0.25);
-}
-
-.railway-hud-grid {
-  background-size: 24px 24px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-}
-
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #0b1329;
-}
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
-}
+.leaflet-container { font-family: 'Inter', sans-serif !important; z-index: 0 !important; }
+.leaflet-pane { z-index: 0 !important; }
+.leaflet-top, .leaflet-bottom { z-index: 10 !important; }

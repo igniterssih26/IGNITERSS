@@ -1,0 +1,105 @@
+/* RailOps Corporate Brutalism Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Core palette */
+  --bg: #FAFAFA;
+  --surface: #FFFFFF;
+  --surface-2: #F4F4F5;
+  --surface-3: #E4E4E7;
+  --border: #18181B;
+  --border-light: #D4D4D8;
+  --border-mid: #A1A1AA;
+
+  /* Text */
+  --text: #09090B;
+  --text-2: #3F3F46;
+  --text-3: #71717A;
+  --text-muted: #A1A1AA;
+
+  /* Accent */
+  --blue: #2563EB;
+  --blue-dark: #1D4ED8;
+  --blue-light: #EFF6FF;
+  --blue-mid: #BFDBFE;
+
+  /* Status */
+  --green: #16A34A;
+  --green-light: #F0FDF4;
+  --green-mid: #BBF7D0;
+  --amber: #D97706;
+  --amber-light: #FFFBEB;
+  --amber-mid: #FDE68A;
+  --red: #DC2626;
+  --red-light: #FEF2F2;
+  --red-mid: #FECACA;
+  --cyan: #0891B2;
+  --cyan-light: #ECFEFF;
+  --purple: #7C3AED;
+  --purple-light: #F5F3FF;
+
+  /* Brutalism offset shadow */
+  --shadow-brutal: 3px 3px 0px #18181B;
+  --shadow-brutal-sm: 2px 2px 0px #18181B;
+  --shadow-brutal-lg: 5px 5px 0px #18181B;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface-2); }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-mid); }
+
+/* Brutal card */
+.card-brutal {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-brutal);
+}
+
+.card-light {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+}
+
+/* Status pill */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+.mono { font-family: var(--font-mono); }
+
+/* Animations */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes slideIn { from { transform: translateX(-10px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.animate-spin { animation: spin 1s linear infinite; }
+.animate-pulse { animation: pulse 2s ease-in-out infinite; }
+.animate-slide-in { animation: slideIn 0.2s ease-out; }
