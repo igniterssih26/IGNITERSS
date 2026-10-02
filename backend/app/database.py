@@ -19,16 +19,25 @@ if raw_url.startswith("postgres://"):
 else:
     SQLALCHEMY_DATABASE_URL = raw_url
 
-if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+try:
+    if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+        engine = create_engine(
+            SQLALCHEMY_DATABASE_URL,
+            connect_args={"check_same_thread": False}
+        )
+    else:
+        engine = create_engine(
+            SQLALCHEMY_DATABASE_URL,
+            pool_pre_ping=True,
+            pool_recycle=300
+        )
+except Exception as e:
+    print(f"[DATABASE ENGINE WARNING] Error creating engine for {SQLALCHEMY_DATABASE_URL}: {e}")
+    print("[DATABASE ENGINE] Falling back to SQLite engine to keep service alive.")
+    SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
         connect_args={"check_same_thread": False}
-    )
-else:
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
-        pool_pre_ping=True,
-        pool_recycle=300
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
