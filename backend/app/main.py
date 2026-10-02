@@ -71,6 +71,16 @@ app.include_router(schedules_router)
 app.include_router(data_router)
 app.include_router(audit_router)
 
+@app.get("/")
+def root():
+    return {
+        "system": "RailOps / IGNITERSS Central API",
+        "status": "ONLINE",
+        "documentation": "/docs",
+        "health": "/api/health",
+        "info": "/api/info"
+    }
+
 @app.get("/api/info")
 def root_info():
     return {
