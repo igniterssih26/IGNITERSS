@@ -16,7 +16,12 @@ import {
   AuditLogItem
 } from '../types/railops';
 
-const API_BASE = '/api';
+const envUrl = (import.meta.env.VITE_API_BASE_URL as string)?.trim();
+let API_BASE = '/api';
+if (envUrl) {
+  const sanitized = envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+  API_BASE = sanitized.endsWith('/api') ? sanitized : `${sanitized}/api`;
+}
 
 const client = axios.create({
   baseURL: API_BASE,

@@ -62,9 +62,10 @@ def root_info():
 
 @app.get("/api/health")
 def health():
+    dialect_name = engine.dialect.name
     return {
         "status": "healthy",
-        "database": "sqlite/railops.db",
+        "database": f"{dialect_name} ({'Supabase / PostgreSQL' if 'postgres' in dialect_name else 'SQLite'})",
         "gateway": "CRIS FOIS CONNECTED",
         "latency_ms": 14
     }
