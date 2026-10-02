@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base, SessionLocal
+from app.database import engine, Base, SessionLocal, DB_PATH
 from app.services.seed_data import seed_database
 from app.routes.requests import router as requests_router
 from app.routes.plans import router as plans_router
@@ -25,19 +25,22 @@ def init_db():
             db.close()
     except Exception as e:
         print(f"[DATABASE WARNING] Remote database connection failed: {e}")
-        if not str(engine.url).startswith("sqlite"):
-            print("[DATABASE] Falling back to local SQLite so the web service remains online...")
-            from sqlalchemy import create_engine
-            fallback_url = f"sqlite:///{DB_PATH}"
-            fallback_engine = create_engine(fallback_url, connect_args={"check_same_thread": False})
-            Base.metadata.create_all(bind=fallback_engine)
-            SessionLocal.configure(bind=fallback_engine)
-            db = SessionLocal()
-            try:
-                seed_database(db)
-                print("[DATABASE] Local SQLite fallback ready.")
-            finally:
-                db.close()
+        try:
+            if not str(engine.url).startswith("sqlite"):
+                print("[DATABASE] Falling back to local SQLite so the web service remains online...")
+                from sqlalchemy import create_engine
+                fallback_url = f"sqlite:///{DB_PATH}"
+                fallback_engine = create_engine(fallback_url, connect_args={"check_same_thread": False})
+                Base.metadata.create_all(bind=fallback_engine)
+                SessionLocal.configure(bind=fallback_engine)
+                db = SessionLocal()
+                try:
+                    seed_database(db)
+                    print("[DATABASE] Local SQLite fallback ready.")
+                finally:
+                    db.close()
+        except Exception as fallback_err:
+            print(f"[DATABASE ERROR] Fallback initialization error: {fallback_err}")
 
 init_db()
 

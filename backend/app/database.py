@@ -9,15 +9,34 @@ try:
 except ImportError:
     pass
 
+import urllib.parse
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "railops.db")
 raw_url = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
 
-# Render & Supabase often use postgres://, which SQLAlchemy 2.0 requires as postgresql://
-if raw_url.startswith("postgres://"):
-    SQLALCHEMY_DATABASE_URL = raw_url.replace("postgres://", "postgresql://", 1)
-else:
-    SQLALCHEMY_DATABASE_URL = raw_url
+def normalize_database_url(url: str) -> str:
+    url = url.strip()
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    
+    # Auto-encode password if special characters like '@' exist in password
+    if url.startswith("postgresql://") or url.startswith("postgresql+psycopg://"):
+        try:
+            proto, rest = url.split("://", 1)
+            if "@" in rest:
+                # The host starts after the last '@'
+                creds, host_part = rest.rsplit("@", 1)
+                if ":" in creds:
+                    username, password = creds.split(":", 1)
+                    if "%" not in password:
+                        password = urllib.parse.quote_plus(password)
+                    url = f"{proto}://{username}:{password}@{host_part}"
+        except Exception:
+            pass
+    return url
+
+SQLALCHEMY_DATABASE_URL = normalize_database_url(raw_url)
 
 try:
     if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
