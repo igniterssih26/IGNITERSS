@@ -12,15 +12,34 @@ from app.routes.schedules import router as schedules_router
 from app.routes.data_management import router as data_router
 from app.routes.audit import router as audit_router
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Safe Database Initialization
+def init_db():
+    try:
+        print("[DATABASE] Verifying tables with engine:", engine.url)
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        try:
+            seed_database(db)
+            print("[DATABASE] Database tables and seed data verified successfully.")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[DATABASE WARNING] Remote database connection failed: {e}")
+        if not str(engine.url).startswith("sqlite"):
+            print("[DATABASE] Falling back to local SQLite so the web service remains online...")
+            from sqlalchemy import create_engine
+            fallback_url = f"sqlite:///{DB_PATH}"
+            fallback_engine = create_engine(fallback_url, connect_args={"check_same_thread": False})
+            Base.metadata.create_all(bind=fallback_engine)
+            SessionLocal.configure(bind=fallback_engine)
+            db = SessionLocal()
+            try:
+                seed_database(db)
+                print("[DATABASE] Local SQLite fallback ready.")
+            finally:
+                db.close()
 
-# Seed database with initial dataset
-db = SessionLocal()
-try:
-    seed_database(db)
-finally:
-    db.close()
+init_db()
 
 app = FastAPI(
     title="RailOps Central API",
