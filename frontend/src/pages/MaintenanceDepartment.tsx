@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -107,6 +108,8 @@ export default function MaintenanceDepartment() {
   });
   const [submitted, setSubmitted] = useState(false);
 
+  const navigate = useNavigate();
+
   const filteredReqs = requests.filter(r =>
     (statusFilter === 'ALL' || r.status === statusFilter) &&
     (r.id.includes(search) || r.asset.toLowerCase().includes(search.toLowerCase()))
@@ -114,14 +117,28 @@ export default function MaintenanceDepartment() {
 
   const handleSubmit = () => {
     const newId = `REQ-0${143 + Math.floor(Math.random() * 100)}`;
-    setRequests(prev => [{
+    const newReq = {
       id: newId, dept: formData.dept, asset: formData.asset,
       segment: formData.segment, time: `${formData.startTime}–${formData.endTime}`,
       duration: '2h', priority: formData.urgency, criticality: formData.criticality,
-      status: 'REQUESTED', aiRec: '—'
-    }, ...prev]);
+      status: 'REQUESTED', aiRec: '18:00–20:00',
+      type: formData.type, reason: formData.reason,
+      date: formData.date, startTime: formData.startTime, endTime: formData.endTime,
+    };
+    setRequests(prev => [newReq, ...prev]);
+    // Persist to localStorage for downstream panels
+    localStorage.setItem('railops_workflow', JSON.stringify({
+      stage: 'ANALYSIS',
+      request: newReq,
+      submittedAt: new Date().toISOString(),
+    }));
     setSubmitted(true);
-    setTimeout(() => { setSubmitted(false); setShowCreateModal(false); }, 1500);
+    // Navigate to Central Intelligence after 1.5s
+    setTimeout(() => {
+      setSubmitted(false);
+      setShowCreateModal(false);
+      navigate('/intelligence');
+    }, 1500);
   };
 
   const tabs = [
@@ -458,8 +475,12 @@ export default function MaintenanceDepartment() {
         {submitted ? (
           <div className="text-center py-12">
             <CheckCircle size={48} className="text-green-500 mx-auto mb-3" />
-            <p className="text-lg font-black text-zinc-900">Request Submitted</p>
-            <p className="text-zinc-500 text-sm mt-1">Request submitted to RailOps Planning Engine.</p>
+            <p className="text-lg font-black text-zinc-900">Request Submitted!</p>
+            <p className="text-zinc-500 text-sm mt-1">Forwarding to Central Intelligence for AI analysis...</p>
+            <div className="flex items-center justify-center gap-2 mt-4 text-blue-600 text-sm font-bold">
+              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              Redirecting to Agent Pipeline...
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle, X, Clock, AlertTriangle, FileText,
   Send, UserCheck, Train, Shield, Zap, ChevronDown, Eye
@@ -43,6 +44,7 @@ const BLOCK_REGISTER = [
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function RailwayOperations() {
+  const navigate = useNavigate();
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [approveTarget, setApproveTarget] = useState<typeof APPROVAL_QUEUE[0] | null>(null);
   const [modifyTarget, setModifyTarget] = useState<typeof APPROVAL_QUEUE[0] | null>(null);
@@ -52,10 +54,38 @@ export default function RailwayOperations() {
   const [completionNotes, setCompletionNotes] = useState('');
   const [possessionStatuses, setPossessionStatuses] = useState<Record<string, string>>({});
   const [modifyTime, setModifyTime] = useState('');
+  const [incomingBlock, setIncomingBlock] = useState<any>(null);
+  const [approvedBlock, setApprovedBlock] = useState<string | null>(null);
 
-  const handleApprove = (blk: typeof APPROVAL_QUEUE[0]) => {
+  useEffect(() => {
+    // Load incoming block from Central Intelligence
+    const raw = localStorage.getItem('railops_workflow');
+    if (raw) {
+      const wf = JSON.parse(raw);
+      if (wf.stage === 'APPROVAL' && wf.recommendation && !wf.operationsApproved) {
+        setIncomingBlock({ blkId: 'BLK-2026-047', reqId: 'REQ-NEW', dept: wf.request?.dept || 'Engineering', segment: wf.request?.segment || 'A-B', asset: wf.request?.asset || '—', window: wf.recommendation.window, duration: '2h', priority: wf.recommendation.priority, impact: wf.recommendation.impact, score: 94, status: 'PENDING' });
+      }
+    }
+  }, []);
+
+  const handleApprove = (blk: typeof APPROVAL_QUEUE[0] | any) => {
     setStatuses(prev => ({ ...prev, [blk.blkId]: 'APPROVED' }));
     setApproveTarget(null);
+    setApprovedBlock(blk.blkId);
+    // Save workflow progress and navigate to Railway Stations
+    const raw = localStorage.getItem('railops_workflow');
+    const wf = raw ? JSON.parse(raw) : {};
+    localStorage.setItem('railops_workflow', JSON.stringify({
+      ...wf,
+      stage: 'POSSESSION',
+      operationsApproved: true,
+      approvedBlock: blk.blkId,
+      approvedWindow: blk.window,
+      approvedSegment: blk.segment,
+      approvedDept: blk.dept,
+      operationsApprovedAt: new Date().toISOString(),
+    }));
+    setTimeout(() => navigate('/stations'), 1500);
   };
   const handleReject = (blk: typeof APPROVAL_QUEUE[0]) => {
     setStatuses(prev => ({ ...prev, [blk.blkId]: 'REJECTED' }));

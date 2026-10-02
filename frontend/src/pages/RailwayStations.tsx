@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MapPin, Bell, Clock, CheckCircle, AlertTriangle, Train, FileText } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
@@ -67,9 +67,52 @@ const statusColor = (s: string) => {
 
 export default function RailwayStations() {
   const [activeStation, setActiveStation] = useState('Chennai Central');
-  const info = STATION_INFO[activeStation];
-  const notifications = STATION_NOTIFICATIONS[activeStation] || [];
-  const history = STATION_HISTORY[activeStation] || [];
+  const [workflowState, setWorkflowState] = useState<any>(null);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('railops_workflow');
+    if (raw) {
+      try {
+        const wf = JSON.parse(raw);
+        setWorkflowState(wf);
+        if (wf.request?.segment?.includes('A') || wf.request?.segment?.includes('B')) {
+          setActiveStation('Chennai Central');
+        } else if (wf.request?.segment?.includes('C') || wf.request?.segment?.includes('D')) {
+          setActiveStation('Salem');
+        }
+      } catch (e) {}
+    }
+  }, []);
+
+  const info = STATION_INFO[activeStation] || STATION_INFO['Chennai Central'];
+  
+  // Combine static notifications with any workflow notifications
+  const baseNotifs = STATION_NOTIFICATIONS[activeStation] || [];
+  const notifications = workflowState?.operationsApproved ? [
+    {
+      msg: `Block ${workflowState.approvedBlock || 'BLK-2026-047'} authorized. Track ${workflowState.approvedSegment || 'A-B'} closed ${workflowState.approvedWindow || 'Thursday 18:00–20:00'}.`,
+      time: 'Just now',
+      type: 'green'
+    },
+    ...baseNotifs
+  ] : baseNotifs;
+
+  // Combine static history with dynamic workflow history entry
+  const baseHistory = STATION_HISTORY[activeStation] || [];
+  const history = workflowState?.operationsApproved ? [
+    {
+      date: 'Today',
+      blkId: workflowState.approvedBlock || 'BLK-2026-047',
+      dept: workflowState.approvedDept || 'Engineering',
+      type: 'AI-Planned Maintenance',
+      segment: workflowState.approvedSegment || 'A-B',
+      duration: '2h',
+      trains: 1,
+      status: 'ACTIVE'
+    },
+    ...baseHistory
+  ] : baseHistory;
+
   const trains = TRAIN_SCHEDULES[activeStation] || [];
 
   return (
@@ -79,6 +122,24 @@ export default function RailwayStations() {
         <h1 className="text-xl font-black uppercase tracking-tight text-zinc-900">RAILWAY STATIONS</h1>
         <p className="text-zinc-500 text-sm mt-0.5">Station directory, maintenance impact and operational history</p>
       </div>
+
+      {/* End-to-End Workflow Progress Banner */}
+      {workflowState?.operationsApproved && (
+        <div className="p-4 bg-green-50 border-2 border-green-600 shadow-[3px_3px_0px_#16A34A] flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="text-green-600 flex-shrink-0" size={24} />
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-green-900">
+                Full Lifecycle Completed: {workflowState.approvedBlock || 'BLK-2026-047'}
+              </p>
+              <p className="text-xs text-green-700 mt-0.5">
+                Maintenance Dept ➔ Central Intelligence (AI Plan) ➔ Railway Operations (Approved) ➔ Station Execution ({activeStation})
+              </p>
+            </div>
+          </div>
+          <Badge status="APPROVED">POSSESSION ACTIVE</Badge>
+        </div>
+      )}
 
       {/* Station Selector */}
       <div className="flex items-center gap-2 flex-wrap">

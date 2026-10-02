@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup } from 'react-leaflet';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -96,6 +97,7 @@ const stateBadge = (state: string) => {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function CentralIntelligence() {
+  const navigate = useNavigate();
   const [activeView, setActiveView] = useState<'weekly' | 'monthly' | 'map' | 'agents'>('weekly');
   const [selectedBlock, setSelectedBlock] = useState<typeof WEEK_BLOCKS[0] | null>(null);
   const [blockStatuses, setBlockStatuses] = useState<Record<string, string>>({});
@@ -105,16 +107,68 @@ export default function CentralIntelligence() {
   const [recAction, setRecAction] = useState<string | null>(null);
   const [approveModal, setApproveModal] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [agentStates, setAgentStates] = useState<string[]>(AGENTS.map(a => a.state));
+  const [pipelineRunning, setPipelineRunning] = useState(false);
+  const [pipelineDone, setPipelineDone] = useState(false);
+  const [incomingRequest, setIncomingRequest] = useState<any>(null);
 
   useEffect(() => {
-    if (activeView === 'map') {
-      setMapLoaded(true);
+    if (activeView === 'map') setMapLoaded(true);
+    // Load incoming workflow from Maintenance Dept
+    const raw = localStorage.getItem('railops_workflow');
+    if (raw) {
+      const wf = JSON.parse(raw);
+      if (wf.stage === 'ANALYSIS' && wf.request) {
+        setIncomingRequest(wf.request);
+        setActiveView('agents');
+        // Auto-run agent pipeline for new request
+        runAgentPipeline();
+      }
     }
   }, [activeView]);
+
+  const runAgentPipeline = useCallback(() => {
+    if (pipelineRunning) return;
+    setPipelineRunning(true);
+    setPipelineDone(false);
+    const states = ['waiting', 'waiting', 'waiting', 'waiting', 'waiting', 'waiting', 'waiting', 'waiting'];
+    setAgentStates([...states]);
+    // Simulate each agent completing sequentially
+    AGENTS.forEach((_, i) => {
+      setTimeout(() => {
+        setAgentStates(prev => {
+          const next = [...prev];
+          next[i] = i === 2 ? 'warning' : 'complete'; // Agent 3 is conflict detection
+          if (i + 1 < next.length) next[i + 1] = 'running';
+          return next;
+        });
+        if (i === AGENTS.length - 1) {
+          setTimeout(() => { setPipelineRunning(false); setPipelineDone(true); }, 600);
+        }
+      }, 800 * (i + 1));
+    });
+  }, [pipelineRunning]);
 
   const handleBlockAction = (req: string, action: string) => {
     setBlockStatuses(prev => ({ ...prev, [req]: action === 'approve' ? 'APPROVED' : action === 'reject' ? 'REJECTED' : 'MODIFIED' }));
     setSelectedBlock(null);
+  };
+
+  const handleApproveRecommendation = () => {
+    setRecAction('approved');
+    // Save workflow progress
+    const raw = localStorage.getItem('railops_workflow');
+    const wf = raw ? JSON.parse(raw) : {};
+    localStorage.setItem('railops_workflow', JSON.stringify({
+      ...wf,
+      stage: 'APPROVAL',
+      recommendation: { window: '18:00–20:00', priority: 'HIGH', impact: 'LOW', affectedTrains: 1 },
+      approvedByIntelligence: true,
+      approvedAt: new Date().toISOString(),
+    }));
+    setApproveModal(false);
+    // Navigate to Railway Operations
+    setTimeout(() => navigate('/operations'), 1000);
   };
 
   const views = [
@@ -123,6 +177,7 @@ export default function CentralIntelligence() {
     { key: 'map', label: 'Railway Map', icon: Map },
     { key: 'agents', label: 'Agent Pipeline', icon: Brain },
   ] as const;
+
 
   return (
     <div className="p-6 space-y-5 animate-fade-in">
@@ -416,10 +471,19 @@ export default function CentralIntelligence() {
                   The requested 14:00–16:00 window conflicts with Train 12678 (Track T2, 14:20–15:10). The 16:00–18:00 window overlaps TRD maintenance on B-C. 18:00–20:00 is the earliest feasible window with only 1 affected train.
                 </p>
                 {!recAction ? (
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => { setRecAction('approved'); setApproveModal(true); }} className="px-4 py-2 bg-green-600 text-white text-xs font-bold uppercase border-2 border-green-600 hover:bg-white hover:text-green-600 transition-colors cursor-pointer flex items-center gap-1.5"><CheckCircle size={12} /> Approve</button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button onClick={() => { setRecAction('approved'); handleApproveRecommendation(); }} className="px-4 py-2 bg-green-600 text-white text-xs font-bold uppercase border-2 border-green-600 hover:bg-white hover:text-green-600 transition-colors cursor-pointer flex items-center gap-1.5"><CheckCircle size={12} /> Approve & Forward to Operations</button>
                     <button onClick={() => setRecAction('modified')} className="px-4 py-2 bg-amber-500 text-white text-xs font-bold uppercase border-2 border-amber-500 hover:bg-white hover:text-amber-600 transition-colors cursor-pointer">Modify</button>
                     <button onClick={() => setRecAction('rejected')} className="px-4 py-2 bg-red-600 text-white text-xs font-bold uppercase border-2 border-red-600 hover:bg-white hover:text-red-600 transition-colors cursor-pointer flex items-center gap-1.5"><X size={12} /> Reject</button>
+                  </div>
+                ) : recAction === 'approved' ? (
+                  <div className="flex items-center gap-3 p-3 bg-green-50 border-2 border-green-300">
+                    <CheckCircle size={18} className="text-green-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-black text-green-800">Approved — Forwarding to Railway Operations...</p>
+                      <p className="text-[10px] text-green-600 mt-0.5">Block BLK-2026-047 sent to authority approval queue</p>
+                    </div>
+                    <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin ml-auto" />
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
